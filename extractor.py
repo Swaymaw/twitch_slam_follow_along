@@ -5,6 +5,9 @@ np.set_printoptions(suppress=True)
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform
 
+# Essential Matrix Transform can be only used with a calibrated camera
+from skimage.transform import EssentialMatrixTransform
+
 def add_ones(x):
     return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
 
@@ -23,7 +26,8 @@ class FeatureExtractor(object):
 
     def denormalize(self, pt):
         ret = np.dot(self.K, [pt[0], pt[1], 1.0])
-        ret /= ret[2]
+        # needed?
+        # ret /= ret[2]
         return int(round(ret[0])), int(round(ret[1]))
     
     def extract(self, img):
@@ -52,16 +56,21 @@ class FeatureExtractor(object):
             ret[:, 0, :] = self.normalize(ret[:, 0, :])
             ret[:, 1, :] = self.normalize(ret[:, 1, :])
 
-            
-            model, inliers = ransac((ret[:, 0], ret[:, 1]), 
-                                    FundamentalMatrixTransform,
-                                    min_samples=8, 
-                                    residual_threshold=1, 
-                                    max_trials=100)
+            # just to prevent 'src.shape[0] must be equal or larger than 8' error
+            try: 
+                model, inliers = ransac((ret[:, 0], ret[:, 1]), 
+                                        EssentialMatrixTransform,
+                                        # FundamentalMatrixTransform,
+                                        min_samples=8, 
+                                        residual_threshold=0.005, 
+                                        max_trials=100)
 
-            ret = ret[inliers]
-            s, v, d = np.linalg.svd(model.params)
-            
+                ret = ret[inliers]
+            except:
+                ret[:] = ret
+            # s, v, d = np.linalg.svd(model.params)
+            # print(v)
+
         # return 
         self.last = {'kps':kps, 'des':des}
         return ret

@@ -4,8 +4,7 @@ import numpy as np
 from extractor import FeatureExtractor
 
 W, H = 1920//2, 1080//2
-# F = 407.5369151445753
-F = 1
+F = 200
 
 display = Display(W, H)
 K = np.array(([F, 0, W//2], [0, F, H//2], [0, 0, 1]))
