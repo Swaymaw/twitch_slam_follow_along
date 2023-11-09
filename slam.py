@@ -4,7 +4,7 @@ import numpy as np
 from extractor import FeatureExtractor
 
 W, H = 1920//2, 1080//2
-F = 200
+F = 270
 
 display = Display(W, H)
 K = np.array(([F, 0, W//2], [0, F, H//2], [0, 0, 1]))
@@ -12,7 +12,10 @@ fe = FeatureExtractor(K)
 
 def process_frame(img):
     img = cv2.resize(img, (W, H))
-    matches = fe.extract(img)
+    matches, pose = fe.extract(img)
+    if pose is None:
+        return
+    print(pose)
 
     for pt1, pt2 in matches:
         u1, v1 = fe.denormalize(pt1)

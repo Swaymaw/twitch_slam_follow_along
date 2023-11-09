@@ -11,6 +11,23 @@ from skimage.transform import EssentialMatrixTransform
 def add_ones(x):
     return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
 
+
+def extractRt(E):
+    W = np.mat([[0, -1, 0], [1, 0, 0], [0, 0 ,1]], dtype=float)
+
+    U, d, Vt = np.linalg.svd(E)
+    assert np.linalg.det(U) > 0
+    if np.linalg.det(Vt) < 0:
+        Vt *= -1
+    
+    R = np.dot(np.dot(U, W), Vt)
+    if np.sum(R.diagonal()) < 0:
+        R = np.dot(np.dot(U, W.T), Vt) 
+    t = U[:, 2]
+    Rt = np.concatenate([R, t.reshape(3, 1)], axis=1)
+    return Rt
+
+
 class FeatureExtractor(object):
     GX = 16//2 
     GY = 12//2
@@ -49,6 +66,7 @@ class FeatureExtractor(object):
                     ret.append((kp1, kp2))
 
         #filter
+        Rt = None
         if len(ret) > 0:
             ret = np.array(ret)
 
@@ -63,14 +81,16 @@ class FeatureExtractor(object):
                                         # FundamentalMatrixTransform,
                                         min_samples=8, 
                                         residual_threshold=0.005, 
-                                        max_trials=100)
+                                        max_trials=200)
 
                 ret = ret[inliers]
-            except:
-                ret[:] = ret
-            # s, v, d = np.linalg.svd(model.params)
-            # print(v)
+                Rt = extractRt(model.params)
 
+            except ValueError:
+                ret[:] = ret 
+                Rt = None
+        
         # return 
         self.last = {'kps':kps, 'des':des}
-        return ret
+        return ret, Rt
+        
